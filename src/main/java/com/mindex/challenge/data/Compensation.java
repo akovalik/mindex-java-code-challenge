@@ -1,6 +1,6 @@
 package com.mindex.challenge.data;
 
-public class CompensationRecord {
+public class Compensation {
 
     private String employeeId;
     private String salary;

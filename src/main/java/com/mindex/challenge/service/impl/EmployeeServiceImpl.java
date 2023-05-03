@@ -2,11 +2,15 @@ package com.mindex.challenge.service.impl;
 
 import com.mindex.challenge.dao.EmployeeRepository;
 import com.mindex.challenge.data.Employee;
+import com.mindex.challenge.data.ReportingStructure;
 import com.mindex.challenge.service.EmployeeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,7 +33,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Employee read(String id) {
-        LOG.debug("Creating employee with id [{}]", id);
+        LOG.debug("Retrieving employee with id [{}]", id);
 
         Employee employee = employeeRepository.findByEmployeeId(id);
 
@@ -45,5 +49,45 @@ public class EmployeeServiceImpl implements EmployeeService {
         LOG.debug("Updating employee [{}]", employee);
 
         return employeeRepository.save(employee);
+    }
+
+    @Override
+    public ReportingStructure reporting_structure(String id) {
+        LOG.debug("Creating employee structure with id [{}]", id);
+
+        Employee employee = employeeRepository.findByEmployeeId(id);
+
+        if (employee == null) {
+            throw new RuntimeException("Invalid employeeId: " + id);
+        }
+
+        int numberOfReports = fillInDirectReports(employee);
+
+        LOG.debug("size =  [{}]", numberOfReports);
+
+        return new ReportingStructure(employee, numberOfReports);
+    }
+
+    private int fillInDirectReports(Employee employee) {
+        if (employee.getDirectReports() == null) {
+            return 0;
+        }
+        int nestedReports = 0;
+        List<Employee> reports = new ArrayList<>();
+        for (Employee report : employee.getDirectReports()) {
+            Employee emp = employeeRepository.findByEmployeeId(report.getEmployeeId());
+
+            if (emp == null) {
+                throw new RuntimeException("Invalid employeeId: " + report.getEmployeeId());
+            }
+
+            if (emp.getDirectReports() != null) {
+                nestedReports += fillInDirectReports(emp);
+            }
+
+            reports.add(emp);
+        }
+        employee.setDirectReports(reports);
+        return reports.size() + nestedReports;
     }
 }
